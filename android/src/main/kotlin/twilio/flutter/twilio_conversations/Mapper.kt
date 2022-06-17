@@ -77,7 +77,7 @@ object Mapper {
         result.friendlyName = conversation.friendlyName
         result.lastMessageDate = dateToString(conversation.lastMessageDate)
         result.lastReadMessageIndex =
-            if (conversation.synchronizationStatus.isAtLeast(Conversation.SynchronizationStatus.METADATA))
+            if (conversation.synchronizationStatus.isAtLeast(Conversation.SynchronizationStatus.ALL))
                 conversation.lastReadMessageIndex else null
         result.lastMessageIndex = conversation.lastMessageIndex
         result.sid = conversation.sid
