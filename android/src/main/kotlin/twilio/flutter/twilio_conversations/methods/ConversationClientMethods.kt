@@ -41,28 +41,32 @@ class ConversationClientMethods : Api.ConversationClientApi {
     }
 
     override fun createConversation(
-        friendlyName: String,
-        result: Api.Result<Api.ConversationData?>
+            friendlyName: String,
+            result: Api.Result<Api.ConversationData?>
     ) {
         debug("createConversation")
         try {
-            TwilioConversationsPlugin.client?.createConversation(friendlyName, object :
-                CallbackListener<Conversation?> {
+            TwilioConversationsPlugin.client?.conversationBuilder()?.build(object : CallbackListener<Conversation> {
                 override fun onSuccess(conversation: Conversation?) {
                     if (conversation == null) {
                         debug("createConversation => onError: Conversation null")
                         result.error(RuntimeException("Error creating conversation: Conversation null"))
                         return
                     }
-                    debug("createConversation => onSuccess")
-                    val conversationMap = Mapper.conversationToPigeon(conversation)
-                    result.success(conversationMap)
+                    conversation.join(object : StatusListener {
+                        override fun onSuccess() {
+                            debug("createConversation => onSuccess")
+                            val conversationMap = Mapper.conversationToPigeon(conversation)
+                            result.success(conversationMap)
+                        }
+                    })
                 }
 
                 override fun onError(errorInfo: ErrorInfo) {
                     debug("createConversation => onError: $errorInfo")
                     result.error(TwilioException(errorInfo.code, errorInfo.message))
                 }
+
             })
         } catch (err: IllegalArgumentException) {
             return result.error(IllegalArgumentException(err.message))
@@ -74,6 +78,11 @@ class ConversationClientMethods : Api.ConversationClientApi {
         GlobalScope.launch {
             val myConversations = TwilioConversationsPlugin.client?.myConversations
             var conversationsSynchronized = false
+            myConversations?.forEach {
+                debug("" + it.sid)
+                it.synchronizationStatus
+                println(" ${it.synchronizationStatus} ")
+            }
 
             while (!conversationsSynchronized) {
                 conversationsSynchronized = true
@@ -95,11 +104,11 @@ class ConversationClientMethods : Api.ConversationClientApi {
     }
 
     override fun getConversation(
-        conversationSidOrUniqueName: String,
-        result: Api.Result<Api.ConversationData>
+            conversationSidOrUniqueName: String,
+            result: Api.Result<Api.ConversationData>
     ) {
         val client = TwilioConversationsPlugin.client
-            ?: return result.error(ClientNotInitializedException("Client is not initialized"))
+                ?: return result.error(ClientNotInitializedException("Client is not initialized"))
 
         debug("getConversations => conversationSidOrUniqueName: $conversationSidOrUniqueName")
         client.getConversation(conversationSidOrUniqueName, object : CallbackListener<Conversation> {
@@ -117,7 +126,7 @@ class ConversationClientMethods : Api.ConversationClientApi {
 
     override fun getMyUser(result: Api.Result<Api.UserData>) {
         val client = TwilioConversationsPlugin.client
-            ?: return result.error(ClientNotInitializedException("Client is not initialized"))
+                ?: return result.error(ClientNotInitializedException("Client is not initialized"))
 
         val myUser = client.myUser
         return result.success(Mapper.userToPigeon(myUser))
@@ -125,7 +134,7 @@ class ConversationClientMethods : Api.ConversationClientApi {
 
     override fun registerForNotification(tokenData: Api.TokenData, result: Api.Result<Void>) {
         val token: String = tokenData.token
-            ?: return result.error(MissingParameterException("The parameter 'token' was not provided"))
+                ?: return result.error(MissingParameterException("The parameter 'token' was not provided"))
 
         TwilioConversationsPlugin.client?.registerFCMToken(ConversationsClient.FCMToken(token), object : StatusListener {
             override fun onSuccess() {
@@ -143,7 +152,7 @@ class ConversationClientMethods : Api.ConversationClientApi {
 
     override fun unregisterForNotification(tokenData: Api.TokenData, result: Api.Result<Void>) {
         val token: String = tokenData.token
-            ?: return result.error(MissingParameterException("The parameter 'token' was not provided"))
+                ?: return result.error(MissingParameterException("The parameter 'token' was not provided"))
 
         TwilioConversationsPlugin.client?.unregisterFCMToken(ConversationsClient.FCMToken(token), object : StatusListener {
             override fun onSuccess() {
