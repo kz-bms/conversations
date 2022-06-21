@@ -78,11 +78,6 @@ class ConversationClientMethods : Api.ConversationClientApi {
         GlobalScope.launch {
             val myConversations = TwilioConversationsPlugin.client?.myConversations
             var conversationsSynchronized = false
-            myConversations?.forEach {
-                debug("" + it.sid)
-                it.synchronizationStatus
-                println(" ${it.synchronizationStatus} ")
-            }
 
             while (!conversationsSynchronized) {
                 conversationsSynchronized = true
