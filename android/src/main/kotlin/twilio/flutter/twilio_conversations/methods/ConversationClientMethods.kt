@@ -46,7 +46,7 @@ class ConversationClientMethods : Api.ConversationClientApi {
     ) {
         debug("createConversation")
         try {
-            TwilioConversationsPlugin.client?.conversationBuilder()?.build(object : CallbackListener<Conversation> {
+            TwilioConversationsPlugin.client?.conversationBuilder()?.withFriendlyName(friendlyName)?.build(object : CallbackListener<Conversation> {
                 override fun onSuccess(conversation: Conversation?) {
                     if (conversation == null) {
                         debug("createConversation => onError: Conversation null")
