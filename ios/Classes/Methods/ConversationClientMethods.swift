@@ -151,9 +151,23 @@ class ConversationClientMethods: NSObject, TWCONConversationClientApi {
             options: conversationOptions,
             completion: { (result: TCHResult, conversation: TCHConversation?) in
             if result.isSuccessful, let conversation = conversation {
-                self.debug("createConversation => onSuccess")
-                let conversationDict = Mapper.conversationToPigeon(conversation)
-                completion(conversationDict, nil)
+                conversation.join { (result: TCHResult) in
+                                    if result.isSuccessful {
+                                        self.debug("createConversation => onSuccess")
+                                        let conversationDict = Mapper.conversationToPigeon(conversation)
+                                        completion(conversationDict, nil)
+                                    } else {
+                                        let errorMessage = String(describing: result.error)
+                                                        self.debug("createConversation => onError: \(errorMessage)")
+                                                        completion(
+                                                            nil,
+                                                            FlutterError(
+                                                                code: "TwilioException",
+                                                                message: "\(result.error?.code)|Error creating conversation with "
+                                                                + "friendlyName '\(friendlyName)': \(errorMessage)",
+                                                                details: nil))
+                                    }
+                }
             } else {
                 let errorMessage = String(describing: result.error)
                 self.debug("createConversation => onError: \(errorMessage)")
