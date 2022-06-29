@@ -556,7 +556,7 @@ class ConversationClient extends FlutterConversationClientApi {
       String conversationSid, ParticipantData participantData, String reason) {
     final conversation = conversations[conversationSid];
     if (conversation != null) {
-      conversation.participantDeleted(participantData);
+      conversation.participantUpdated(participantData, reason);
     }
   }
 
