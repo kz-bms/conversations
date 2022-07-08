@@ -771,7 +771,7 @@ public class Api {
           return AttributesData.fromMap((Map<String, Object>) readValue(buffer));
         
         case (byte)129:         
-          return AttributesData.fromMap((Map<String, Object>) readValue(buffer));
+          return ConversationData.fromMap((Map<String, Object>) readValue(buffer));
         
         case (byte)130:         
           return ConversationData.fromMap((Map<String, Object>) readValue(buffer));
@@ -780,15 +780,12 @@ public class Api {
           return ConversationData.fromMap((Map<String, Object>) readValue(buffer));
         
         case (byte)132:         
-          return ConversationData.fromMap((Map<String, Object>) readValue(buffer));
+          return TokenData.fromMap((Map<String, Object>) readValue(buffer));
         
         case (byte)133:         
           return TokenData.fromMap((Map<String, Object>) readValue(buffer));
         
         case (byte)134:         
-          return TokenData.fromMap((Map<String, Object>) readValue(buffer));
-        
-        case (byte)135:         
           return UserData.fromMap((Map<String, Object>) readValue(buffer));
         
         default:        
@@ -802,9 +799,9 @@ public class Api {
         stream.write(128);
         writeValue(stream, ((AttributesData) value).toMap());
       } else 
-      if (value instanceof AttributesData) {
+      if (value instanceof ConversationData) {
         stream.write(129);
-        writeValue(stream, ((AttributesData) value).toMap());
+        writeValue(stream, ((ConversationData) value).toMap());
       } else 
       if (value instanceof ConversationData) {
         stream.write(130);
@@ -814,20 +811,16 @@ public class Api {
         stream.write(131);
         writeValue(stream, ((ConversationData) value).toMap());
       } else 
-      if (value instanceof ConversationData) {
+      if (value instanceof TokenData) {
         stream.write(132);
-        writeValue(stream, ((ConversationData) value).toMap());
+        writeValue(stream, ((TokenData) value).toMap());
       } else 
       if (value instanceof TokenData) {
         stream.write(133);
         writeValue(stream, ((TokenData) value).toMap());
       } else 
-      if (value instanceof TokenData) {
-        stream.write(134);
-        writeValue(stream, ((TokenData) value).toMap());
-      } else 
       if (value instanceof UserData) {
-        stream.write(135);
+        stream.write(134);
         writeValue(stream, ((UserData) value).toMap());
       } else 
 {
@@ -840,7 +833,7 @@ public class Api {
   public interface ConversationClientApi {
     void updateToken(String token, Result<Void> result);
     void shutdown();
-    void createConversation(String friendlyName, Result<ConversationData> result);
+    void createConversation(String friendlyName, AttributesData attributesData, Result<ConversationData> result);
     void getMyConversations(Result<List<ConversationData>> result);
     void getConversation(String conversationSidOrUniqueName, Result<ConversationData> result);
     void getMyUser(Result<UserData> result);
@@ -919,6 +912,10 @@ public class Api {
               if (friendlyNameArg == null) {
                 throw new NullPointerException("friendlyNameArg unexpectedly null.");
               }
+              AttributesData attributesDataArg = (AttributesData)args.get(1);
+              if (attributesDataArg == null) {
+                throw new NullPointerException("attributesDataArg unexpectedly null.");
+              }
               Result<ConversationData> resultCallback = new Result<ConversationData>() {
                 public void success(ConversationData result) {
                   wrapped.put("result", result);
@@ -930,7 +927,7 @@ public class Api {
                 }
               };
 
-              api.createConversation(friendlyNameArg, resultCallback);
+              api.createConversation(friendlyNameArg, attributesDataArg, resultCallback);
             }
             catch (Error | RuntimeException exception) {
               wrapped.put("error", wrapError(exception));

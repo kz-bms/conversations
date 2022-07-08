@@ -122,7 +122,7 @@ abstract class ConversationClientApi {
   void shutdown();
 
   @async
-  ConversationData createConversation(String friendlyName);
+  ConversationData createConversation(String friendlyName, AttributesData attributesData);
 
   @async
   List<ConversationData> getMyConversations();

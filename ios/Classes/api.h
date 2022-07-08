@@ -144,7 +144,7 @@ NSObject<FlutterMessageCodec> *TWCONConversationClientApiGetCodec(void);
 @protocol TWCONConversationClientApi
 - (void)updateTokenToken:(nullable NSString *)token completion:(void(^)(FlutterError *_Nullable))completion;
 - (void)shutdownWithError:(FlutterError *_Nullable *_Nonnull)error;
-- (void)createConversationFriendlyName:(nullable NSString *)friendlyName completion:(void(^)(TWCONConversationData *_Nullable, FlutterError *_Nullable))completion;
+- (void)createConversationFriendlyName:(nullable NSString *)friendlyName attributesData:(nullable TWCONAttributesData *)attributesData completion:(void(^)(TWCONConversationData *_Nullable, FlutterError *_Nullable))completion;
 - (void)getMyConversationsWithCompletion:(void(^)(NSArray<TWCONConversationData *> *_Nullable, FlutterError *_Nullable))completion;
 - (void)getConversationConversationSidOrUniqueName:(nullable NSString *)conversationSidOrUniqueName completion:(void(^)(TWCONConversationData *_Nullable, FlutterError *_Nullable))completion;
 - (void)getMyUserWithCompletion:(void(^)(TWCONUserData *_Nullable, FlutterError *_Nullable))completion;

@@ -13,6 +13,7 @@ import twilio.flutter.twilio_conversations.Api
 import twilio.flutter.twilio_conversations.Mapper
 import twilio.flutter.twilio_conversations.TwilioConversationsPlugin
 import twilio.flutter.twilio_conversations.exceptions.ClientNotInitializedException
+import twilio.flutter.twilio_conversations.exceptions.ConversionException
 import twilio.flutter.twilio_conversations.exceptions.MissingParameterException
 import twilio.flutter.twilio_conversations.exceptions.TwilioException
 
@@ -42,11 +43,14 @@ class ConversationClientMethods : Api.ConversationClientApi {
 
     override fun createConversation(
             friendlyName: String,
+            attributes: Api.AttributesData,
             result: Api.Result<Api.ConversationData?>
     ) {
         debug("createConversation")
         try {
-            TwilioConversationsPlugin.client?.conversationBuilder()?.withFriendlyName(friendlyName)?.build(object : CallbackListener<Conversation> {
+            val conversationAttributes = Mapper.pigeonToAttributes(attributes)
+                    ?: return result.error(ConversionException("Could not convert $attributes to valid Attributes"))
+            TwilioConversationsPlugin.client?.conversationBuilder()?.withFriendlyName(friendlyName)?.withAttributes(conversationAttributes)?.build(object : CallbackListener<Conversation> {
                 override fun onSuccess(conversation: Conversation?) {
                     if (conversation == null) {
                         debug("createConversation => onError: Conversation null")

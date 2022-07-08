@@ -229,11 +229,15 @@ class ConversationClient extends FlutterConversationClientApi {
 
   //#region Conversations
   Future<Conversation?> createConversation(
-      {required String friendlyName}) async {
+      {required String friendlyName, required Attributes attributes}) async {
     try {
+      final attributesData = AttributesData()
+        ..type = EnumToString.convertToString(attributes.type)
+        ..data = attributes.data;
+
       final result = await TwilioConversations()
           .conversationsClientApi
-          .createConversation(friendlyName);
+          .createConversation(friendlyName, attributesData);
       if (result.sid == null) {
         return null;
       }
