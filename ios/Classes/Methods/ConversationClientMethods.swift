@@ -123,6 +123,7 @@ class ConversationClientMethods: NSObject, TWCONConversationClientApi {
     /// createConversation
     public func createConversationFriendlyName(
         _ friendlyName: String?,
+        attributesData: TWCONAttributesData?,
         completion: @escaping (TWCONConversationData?, FlutterError?) -> Void) {
         self.debug("createConversation => friendlyName: \(String(describing: friendlyName))")
         guard let client = SwiftTwilioConversationsPlugin.instance?.client else {
@@ -142,9 +143,40 @@ class ConversationClientMethods: NSObject, TWCONConversationClientApi {
                     message: "Missing 'friendlyName' parameter",
                     details: nil))
         }
+            
+        guard let attributes = attributesData else {
+            return completion(
+                nil,
+                FlutterError(
+                    code: "MissingParameterException",
+                    message: "Missing 'attributes' parameter",
+                    details: nil))
+        }
+
+        var conversationAttributes: TCHJsonAttributes?
+        do {
+            conversationAttributes = try Mapper.pigeonToAttributes(attributes)
+        } catch LocalizedConversionError.invalidData {
+            return completion(
+                nil,
+                FlutterError(
+                    code: "ConversionException",
+                    message: "Could not convert \(attributesData?.data) to valid TCHJsonAttributes",
+                    details: nil)
+            )
+        } catch {
+            return completion(
+                nil,
+                FlutterError(
+                    code: "ConversionException",
+                    message: "\(attributesData?.type) is not a valid type for TCHJsonAttributes.",
+                    details: nil)
+            )
+        }
 
         let conversationOptions: [String: Any] = [
-            TCHConversationOptionFriendlyName: friendlyName
+            TCHConversationOptionFriendlyName: friendlyName,
+            TCHConversationOptionAttributes: conversationAttributes
         ]
 
         client.createConversation(
