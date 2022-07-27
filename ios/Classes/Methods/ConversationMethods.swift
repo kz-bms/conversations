@@ -234,10 +234,11 @@ class ConversationMethods: NSObject, TWCONConversationApi {
             messageOptions.withBody(messageBody)
         }
         
-        if let messageAttributes = options.attributes {
-            var attributes: TCHJsonAttributes?
+        if let messageAttributes = options.attributes, messageAttributes.type != "NULL" {
             do {
-               attributes = try Mapper.pigeonToAttributes(messageAttributes)
+                var attributes: TCHJsonAttributes?
+                attributes = try Mapper.pigeonToAttributes(messageAttributes)
+                messageOptions.withAttributes(attributes!)
             }
             catch LocalizedConversionError.invalidData {
                 return completion(
@@ -256,7 +257,6 @@ class ConversationMethods: NSObject, TWCONConversationApi {
                         details: nil)
                 )
             }
-            messageOptions.withAttributes(attributes!)
         }
             
         
