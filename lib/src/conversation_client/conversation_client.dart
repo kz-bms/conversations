@@ -10,6 +10,7 @@ class ConversationClient extends FlutterConversationClientApi {
 
   String? myIdentity;
   ConnectionState connectionState = ConnectionState.UNKNOWN;
+  ClientSynchronizationStatus clientSynchronizationStatus = ClientSynchronizationStatus.UNKNOWN;
 
   bool _isReachabilityEnabled = false;
   bool get isReachabilityEnabled => _isReachabilityEnabled;
@@ -351,7 +352,9 @@ class ConversationClient extends FlutterConversationClientApi {
     final synchronizationStatusEnum = EnumToString.fromString(
             ClientSynchronizationStatus.values, synchronizationStatus) ??
         ClientSynchronizationStatus.UNKNOWN;
-    _onClientSynchronizationCtrl.add(synchronizationStatusEnum);
+
+    this.clientSynchronizationStatus = synchronizationStatusEnum;
+    _onClientSynchronizationCtrl.add(this.clientSynchronizationStatus);
   }
 
   @override
