@@ -26,12 +26,16 @@ class ParticipantMethods : Api.ParticipantApi {
 
         client.getConversation(conversationSid, object : CallbackListener<Conversation> {
             override fun onSuccess(conversation: Conversation) {
-                val participant = conversation.getParticipantBySid(participantSid)
-                    ?: return result.error(NotFoundException("No participant found with SID: $participantSid"))
+                if (conversation.synchronizationStatus.isAtLeast(Conversation.SynchronizationStatus.ALL)) {
+                    val participant = conversation.getParticipantBySid(participantSid)
+                        ?: return result.error(NotFoundException("No participant found with SID: $participantSid"))
 
-                participant.getAndSubscribeUser {
-                    debug("getUser => onSuccess")
-                    result.success(Mapper.userToPigeon(it))
+                    participant.getAndSubscribeUser {
+                        debug("getUser => onSuccess")
+                        result.success(Mapper.userToPigeon(it))
+                    }
+                } else {
+                    return result.error(NotFoundException("Conversation $conversationSid is not synchronized properly."))
                 }
             }
 
