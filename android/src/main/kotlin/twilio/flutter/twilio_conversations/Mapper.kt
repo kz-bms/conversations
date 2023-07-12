@@ -109,7 +109,7 @@ object Mapper {
             false -> "media"
         }
         result.media = mediaToPigeon(message)
-        result.hasMedia = message.attachedMedia.isEmpty()
+        result.hasMedia = message.attachedMedia.isNotEmpty()
         result.attributes = attributesToPigeon(message.attributes)
         return result
     }
