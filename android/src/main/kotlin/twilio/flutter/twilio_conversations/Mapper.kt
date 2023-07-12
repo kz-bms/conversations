@@ -3,10 +3,10 @@ package twilio.flutter.twilio_conversations
 import com.twilio.conversations.Attributes
 import com.twilio.conversations.Conversation
 import com.twilio.conversations.ConversationsClient
-import com.twilio.conversations.ErrorInfo
 import com.twilio.conversations.Message
 import com.twilio.conversations.Participant
 import com.twilio.conversations.User
+import com.twilio.util.ErrorInfo
 import java.text.SimpleDateFormat
 import java.util.Date
 import org.json.JSONArray
@@ -99,14 +99,17 @@ object Mapper {
         result.dateUpdated = dateToString(message.dateUpdatedAsDate)
         result.lastUpdatedBy = message.lastUpdatedBy
         result.subject = message.subject
-        result.messageBody = message.messageBody
+        result.messageBody = message.body
         result.conversationSid = message.conversation.sid
         result.participantSid = message.participantSid
 //        result.participant = participantToMap(message.participant)
         result.messageIndex = message.messageIndex
-        result.type = message.type.toString()
+        result.type = when (message.attachedMedia.isEmpty()) {
+            true -> "text"
+            false -> "media"
+        }
         result.media = mediaToPigeon(message)
-        result.hasMedia = message.hasMedia()
+        result.hasMedia = message.attachedMedia.isEmpty()
         result.attributes = attributesToPigeon(message.attributes)
         return result
     }
@@ -130,7 +133,7 @@ object Mapper {
         result.dateCreated = participant.dateCreated
         result.dateUpdated = participant.dateUpdated
         result.identity = participant.identity
-        result.type = participant.type.toString()
+        result.type = "chat"
         result.attributes = attributesToPigeon(participant.attributes)
         return result
     }
@@ -155,15 +158,15 @@ object Mapper {
     }
 
     fun mediaToPigeon(message: Message): Api.MessageMediaData? {
-        if (!message.hasMedia()) {
+        if (message.attachedMedia.isEmpty()) {
             return null
         }
 
         val result = Api.MessageMediaData()
-        result.sid = message.mediaSid
-        result.fileName = message.mediaFileName
-        result.type = message.mediaType
-        result.size = message.mediaSize
+        result.sid = message.attachedMedia.first().sid
+        result.fileName = message.attachedMedia.first().filename
+        result.type = message.attachedMedia.first().contentType
+        result.size = message.attachedMedia.first().size
         result.conversationSid = message.conversationSid
         result.messageIndex = message.messageIndex
         result.messageSid = message.sid
