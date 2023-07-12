@@ -62,8 +62,8 @@ public class Mapper {
         result.participantSid = message.participantSid
 //        result.participant = participantToDict(message.participant, conversationSid: conversationSid)
         result.messageIndex = message.index
-        result.type = messageTypeToString(message.messageType)
-        result.hasMedia = NSNumber(value: message.hasMedia())
+        result.type = message.attachedMedia.isEmpty ? "TEXT" : "MEDIA"
+        result.hasMedia = NSNumber(value: !message.attachedMedia.isEmpty)
         result.media = mediaToPigeon(message, conversationSid)
         result.attributes = attributesToPigeon(message.attributes())
         return result
@@ -84,7 +84,7 @@ public class Mapper {
         result.dateCreated = participant.dateCreated
         result.dateUpdated = participant.dateUpdated
         result.identity = participant.identity
-        result.type = participantTypeToString(participant.type)
+        result.type = "CHAT"
         result.attributes = attributesToPigeon(participant.attributes())
         return result
     }
@@ -104,15 +104,15 @@ public class Mapper {
     }
 
     public static func mediaToPigeon(_ message: TCHMessage, _ conversationSid: String?) -> TWCONMessageMediaData? {
-        if !message.hasMedia() {
+        if message.attachedMedia.isEmpty {
             return nil
         }
 
         let result = TWCONMessageMediaData()
-        result.sid = message.mediaSid
-        result.fileName = message.mediaFilename
-        result.type = message.mediaType
-        result.size = NSNumber(value: message.mediaSize)
+        result.sid = message.sid
+        result.fileName = message.attachedMedia.first?.filename
+        result.type = message.attachedMedia.first?.contentType
+        result.size = NSNumber(value: message.attachedMedia.first?.size ?? 0)
         result.conversationSid = conversationSid
         result.messageIndex = message.index
         result.messageSid = message.sid
@@ -313,42 +313,6 @@ public class Mapper {
         @unknown default:
             return "UNKNOWN"
         }
-    }
-
-    public static func participantTypeToString(_ participantType: TCHParticipantType) -> String {
-        let participantTypeString: String
-
-        switch participantType {
-        case .chat:
-            participantTypeString = "CHAT"
-        case .other:
-            participantTypeString = "OTHER"
-        case .sms:
-            participantTypeString = "SMS"
-        case .unset:
-            participantTypeString = "UNSET"
-        case .whatsapp:
-            participantTypeString = "WHATSAPP"
-        @unknown default:
-            participantTypeString = "UNKNOWN"
-        }
-
-        return participantTypeString
-    }
-
-    public static func messageTypeToString(_ messageType: TCHMessageType) -> String {
-        let messageTypeString: String
-
-        switch messageType {
-        case .media:
-            messageTypeString = "MEDIA"
-        case .text:
-            messageTypeString = "TEXT"
-        @unknown default:
-            messageTypeString = "UNKNOWN"
-        }
-
-        return messageTypeString
     }
 
     public static func messageUpdateToString(_ update: TCHMessageUpdate) -> String {
