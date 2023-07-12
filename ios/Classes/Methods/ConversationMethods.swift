@@ -228,85 +228,80 @@ class ConversationMethods: NSObject, TWCONConversationApi {
                     details: nil))
         }
 
-        let messageOptions = TCHMessageOptions()
-
-        if let messageBody = options.body {
-            messageOptions.withBody(messageBody)
-        }
-        
-        if let messageAttributes = options.attributes, messageAttributes.type != "NULL" {
-            do {
-                var attributes: TCHJsonAttributes?
-                attributes = try Mapper.pigeonToAttributes(messageAttributes)
-                messageOptions.withAttributes(attributes!)
-            }
-            catch LocalizedConversionError.invalidData {
-                return completion(
-                    nil,
-                    FlutterError(
-                        code: "ConversionException",
-                        message: "Could not convert \(messageAttributes.data) to valid TCHJsonAttributes",
-                        details: nil)
-                )
-            } catch {
-                return completion(
-                    nil,
-                    FlutterError(
-                        code: "ConversionException",
-                        message: "\(messageAttributes.type) is not a valid type for TCHJsonAttributes.",
-                        details: nil)
-                )
-            }
-        }
-            
-        
-        if let input = options.inputPath {
-            guard let mimeType = options.mimeType else {
-                return completion(
-                    nil,
-                    FlutterError(
-                        code: "MissingParameterException",
-                        message: "Missing 'mimeType' in MessageOptions",
-                        details: nil))
-            }
-
-            if let inputStream = InputStream(fileAtPath: input) {
-                messageOptions.withMediaStream(inputStream, contentType: mimeType, defaultFilename: options.filename,
-                                               onStarted: nil,
-                                               onProgress: nil,
-                                               onCompleted: nil)
-//                                               ,
-//                                               onStarted: {
-//                    // implement media stream progress listener
-//
-//                },
-//                                               onProgress: { (bytes: UInt) in
-//                    // implement media stream progress listener
-//
-//                },
-//                                               onCompleted: { (mediaSid: String) in
-//                    // implement media stream progress listener
-//
-//                }
-//                )
-            } else {
-                return completion(
-                    nil,
-                    FlutterError(
-                        code: "NotFoundException",
-                        message: "Error locating file for upload from `\(input)`",
-                        details: nil))
-            }
-        }
-
         client.conversation(
             withSidOrUniqueName: conversationSid,
             completion: { (result: TCHResult, conversation: TCHConversation?) in
             if result.isSuccessful,
                let conversation = conversation {
-                conversation.sendMessage(
-                    with: messageOptions,
-                    completion: { (result: TCHResult, message: TCHMessage?) in
+                let prepMessage = conversation.prepareMessage()
+                
+                if let messageBody = options.body {
+                    prepMessage.setBody(messageBody)
+                }
+                
+                if let messageAttributes = options.attributes, messageAttributes.type != "NULL" {
+                    do {
+                        var attributes: TCHJsonAttributes?
+                        var error: TCHError?
+                        
+                        attributes = try Mapper.pigeonToAttributes(messageAttributes)
+                        prepMessage.setAttributes(attributes, error: &error)
+                        
+                        if let error = error {
+                            return completion(
+                                nil,
+                                FlutterError(
+                                    code: "ConversionException",
+                                    message: "Could not convert \(messageAttributes.data) to valid TCHJsonAttributes",
+                                    details: nil)
+                            )
+                        }
+                    }
+                    
+                    catch LocalizedConversionError.invalidData {
+                        return completion(
+                            nil,
+                            FlutterError(
+                                code: "ConversionException",
+                                message: "Could not convert \(messageAttributes.data) to valid TCHJsonAttributes",
+                                details: nil)
+                        )
+                    } catch {
+                        return completion(
+                            nil,
+                            FlutterError(
+                                code: "ConversionException",
+                                message: "\(messageAttributes.type) is not a valid type for TCHJsonAttributes.",
+                                details: nil)
+                        )
+                    }
+                }
+                
+                if let input = options.inputPath {
+                    guard let mimeType = options.mimeType else {
+                        return completion(
+                            nil,
+                            FlutterError(
+                                code: "MissingParameterException",
+                                message: "Missing 'mimeType' in MessageOptions",
+                                details: nil))
+                    }
+                    
+                    
+
+                    if let inputStream = InputStream(fileAtPath: input) {
+                        prepMessage.addMedia(inputStream: inputStream, contentType: mimeType, filename: options.filename)
+                    } else {
+                        return completion(
+                            nil,
+                            FlutterError(
+                                code: "NotFoundException",
+                                message: "Error locating file for upload from `\(input)`",
+                                details: nil))
+                    }
+                }
+                
+                prepMessage.buildAndSend { (result: TCHResult, message: TCHMessage?) in
                     if result.isSuccessful,
                        let message = message {
                         self.debug("sendMessage => onSuccess")
@@ -322,7 +317,7 @@ class ConversationMethods: NSObject, TWCONConversationApi {
                                     + "\(conversationSid): \(errorMessage)",
                                 details: nil))
                     }
-                })
+                }
             } else {
                 let errorMessage = String(describing: result.error)
                 self.debug("typing => onError: \(errorMessage)")

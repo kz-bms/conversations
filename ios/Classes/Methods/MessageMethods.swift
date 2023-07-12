@@ -46,8 +46,8 @@ class MessageMethods: NSObject, TWCONMessageApi {
                         withIndex: messageIndex,
                         completion: { (result: TCHResult, message: TCHMessage?) in
                         if result.isSuccessful, let message = message {
-                            message.getMediaContentTemporaryUrl(completion: { (result: TCHResult, url: String?) in
-                                if result.isSuccessful, let url = url {
+                            message.getTemporaryContentUrlsForAttachedMedia(completion: { (result: TCHResult, urls: [String : URL]?) in
+                                if result.isSuccessful, let url = urls?.first?.value.absoluteString {
                                     self.debug("getMediaContentTemporaryUrl => onSuccess: \(url)")
                                     completion(url, nil)
                                 } else {

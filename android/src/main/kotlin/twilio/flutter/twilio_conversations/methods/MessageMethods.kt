@@ -2,9 +2,9 @@ package twilio.flutter.twilio_conversations.methods
 
 import com.twilio.conversations.CallbackListener
 import com.twilio.conversations.Conversation
-import com.twilio.conversations.ErrorInfo
 import com.twilio.conversations.Message
 import com.twilio.conversations.StatusListener
+import com.twilio.util.ErrorInfo
 import twilio.flutter.twilio_conversations.Api
 import twilio.flutter.twilio_conversations.Mapper
 import twilio.flutter.twilio_conversations.TwilioConversationsPlugin
@@ -29,10 +29,11 @@ class MessageMethods : Api.MessageApi {
             override fun onSuccess(conversation: Conversation) {
                 conversation.getMessageByIndex(messageIndex, object : CallbackListener<Message> {
                     override fun onSuccess(message: Message) {
-                        message.getMediaContentTemporaryUrl(object : CallbackListener<String> {
-                            override fun onSuccess(url: String) {
-                                debug("getMediaContentTemporaryUrl => onSuccess $url")
-                                result.success(url)
+                        message.getTemporaryContentUrlsForAttachedMedia(object :
+                            CallbackListener<Map<String, String>> {
+                            override fun onSuccess(urls: Map<String, String>?) {
+                                debug("getMediaContentTemporaryUrl => onSuccess $urls")
+                                result.success(urls?.values?.toMutableList()?.first() ?: "")
                             }
 
                             override fun onError(errorInfo: ErrorInfo) {
@@ -146,7 +147,7 @@ class MessageMethods : Api.MessageApi {
             override fun onSuccess(conversation: Conversation) {
                 conversation.getMessageByIndex(messageIndex, object : CallbackListener<Message> {
                     override fun onSuccess(message: Message) {
-                        message.updateMessageBody(messageBody, object : StatusListener {
+                        message.updateBody(messageBody, object : StatusListener {
                             override fun onSuccess() {
                                 debug("updateMessageBody => onSuccess")
                                 result.success(null)

@@ -1,9 +1,9 @@
 import com.twilio.conversations.Attributes
 import com.twilio.conversations.CallbackListener
 import com.twilio.conversations.Conversation
-import com.twilio.conversations.ErrorInfo
 import com.twilio.conversations.Message
 import com.twilio.conversations.StatusListener
+import com.twilio.util.ErrorInfo
 import java.io.FileInputStream
 import twilio.flutter.twilio_conversations.Api
 import twilio.flutter.twilio_conversations.Mapper
@@ -142,59 +142,33 @@ class ConversationMethods : Api.ConversationApi {
         val client = TwilioConversationsPlugin.client
             ?: return result.error(ClientNotInitializedException("Client is not initialized"))
 
-        val messageOptions = Message.options()
-        if (options.body != null) {
-            messageOptions.withBody(options.body as String)
-        }
-
-        if (options.attributes != null) {
-            messageOptions.withAttributes(
-                Mapper.pigeonToAttributes(options.attributes))
-        }
-
-        if (options.inputPath != null) {
-            val input = options.inputPath as String
-            val mimeType = options.mimeType as String?
-                ?: return result.error(MissingParameterException("Missing 'mimeType' in MessageOptions"))
-
-            messageOptions.withMedia(FileInputStream(input), mimeType)
-            if (options.filename != null) {
-                messageOptions.withMediaFileName(options.filename as String)
-            }
-
-            // TODO: implement MediaProgressListener
-//            if (options.mediaProgressListenerId != null) {
-//                messageOptions.withMediaProgressListener(object : ProgressListener() {
-//                    override fun onStarted() {
-//                        TwilioConversationsPlugin.mediaProgressSink?.success({
-//                            "mediaProgressListenerId" to options["mediaProgressListenerId"]
-//                            "name" to "started"
-//                        })
-//                    }
-//
-//                    override fun onProgress(bytes: Long) {
-//                        TwilioConversationsPlugin.mediaProgressSink?.success({
-//                            "mediaProgressListenerId" to options["mediaProgressListenerId"]
-//                            "name" to "progress"
-//                            "data" to bytes
-//                        })
-//                    }
-//
-//                    override fun onCompleted(mediaSid: String) {
-//                        TwilioConversationsPlugin.mediaProgressSink?.success({
-//                            "mediaProgressListenerId" to options["mediaProgressListenerId"]
-//                            "name" to "completed"
-//                            "data" to mediaSid
-//                        })
-//                    }
-//                })
-//            }
-        }
-
         try {
             client.getConversation(conversationSid, object : CallbackListener<Conversation> {
                 override fun onSuccess(conversation: Conversation) {
-                    conversation.sendMessage(messageOptions, object : CallbackListener<Message> {
+                    val prepMessage = conversation.prepareMessage()
+
+                    if (options.body != null) {
+                        prepMessage.setBody(options.body as String)
+                    }
+
+                    if (options.attributes != null) {
+                        prepMessage.setAttributes(Mapper.pigeonToAttributes(options.attributes)!!)
+                    }
+
+                    if (options.inputPath != null) {
+                        val input = options.inputPath as String
+                        val mimeType = options.mimeType
+                            ?: return result.error(MissingParameterException("Missing 'mimeType' in MessageOptions"))
+
+                        prepMessage.addMedia(
+                            FileInputStream(input),
+                            mimeType,
+                            options.filename,
+                            null
+                        )
+                    }
+
+                    prepMessage.buildAndSend(object : CallbackListener<Message> {
                         override fun onSuccess(message: Message) {
                             debug("sendMessage => onSuccess")
                             val messageData = Mapper.messageToPigeon(message)
@@ -230,17 +204,20 @@ class ConversationMethods : Api.ConversationApi {
         try {
             client.getConversation(conversationSid, object : CallbackListener<Conversation> {
                 override fun onSuccess(conversation: Conversation) {
-                    conversation.addParticipantByIdentity(identity, Attributes(), object : StatusListener {
-                        override fun onSuccess() {
-                            debug("addParticipantByIdentity => onSuccess")
-                            result.success(true)
-                        }
+                    conversation.addParticipantByIdentity(
+                        identity,
+                        Attributes(),
+                        object : StatusListener {
+                            override fun onSuccess() {
+                                debug("addParticipantByIdentity => onSuccess")
+                                result.success(true)
+                            }
 
-                        override fun onError(errorInfo: ErrorInfo) {
-                            debug("addParticipantByIdentity => onError: $errorInfo")
-                            result.error(TwilioException(errorInfo.code, errorInfo.message))
-                        }
-                    })
+                            override fun onError(errorInfo: ErrorInfo) {
+                                debug("addParticipantByIdentity => onError: $errorInfo")
+                                result.error(TwilioException(errorInfo.code, errorInfo.message))
+                            }
+                        })
                 }
 
                 override fun onError(errorInfo: ErrorInfo) {
@@ -387,7 +364,8 @@ class ConversationMethods : Api.ConversationApi {
         client.getConversation(conversationSid, object : CallbackListener<Conversation> {
             override fun onSuccess(conversation: Conversation) {
                 debug("getParticipantsList => onSuccess")
-                val participantsListData = Mapper.participantListToPigeon(conversation.participantsList)
+                val participantsListData =
+                    Mapper.participantListToPigeon(conversation.participantsList)
                 result.success(participantsListData.toMutableList())
             }
 
@@ -474,19 +452,21 @@ class ConversationMethods : Api.ConversationApi {
 
         client.getConversation(conversationSid, object : CallbackListener<Conversation> {
             override fun onSuccess(conversation: Conversation) {
-                conversation.advanceLastReadMessageIndex(lastReadMessageIndex, object : CallbackListener<Long> {
-                    override fun onSuccess(count: Long) {
-                        debug("advanceLastReadMessageIndex => onSuccess")
-                        val unreadMessages = Api.MessageCount()
-                        unreadMessages.count = count
-                        result.success(unreadMessages)
-                    }
+                conversation.advanceLastReadMessageIndex(
+                    lastReadMessageIndex,
+                    object : CallbackListener<Long> {
+                        override fun onSuccess(count: Long) {
+                            debug("advanceLastReadMessageIndex => onSuccess")
+                            val unreadMessages = Api.MessageCount()
+                            unreadMessages.count = count
+                            result.success(unreadMessages)
+                        }
 
-                    override fun onError(errorInfo: ErrorInfo) {
-                        debug("advanceLastReadMessageIndex => onError: $errorInfo")
-                        result.error(TwilioException(errorInfo.code, errorInfo.message))
-                    }
-                })
+                        override fun onError(errorInfo: ErrorInfo) {
+                            debug("advanceLastReadMessageIndex => onError: $errorInfo")
+                            result.error(TwilioException(errorInfo.code, errorInfo.message))
+                        }
+                    })
             }
 
             override fun onError(errorInfo: ErrorInfo) {
@@ -507,19 +487,21 @@ class ConversationMethods : Api.ConversationApi {
 
         client.getConversation(conversationSid, object : CallbackListener<Conversation> {
             override fun onSuccess(conversation: Conversation) {
-                conversation.setLastReadMessageIndex(lastReadMessageIndex, object : CallbackListener<Long> {
-                    override fun onSuccess(count: Long) {
-                        debug("setLastReadMessageIndex => onSuccess")
-                        val unreadMessages = Api.MessageCount()
-                        unreadMessages.count = count
-                        result.success(unreadMessages)
-                    }
+                conversation.setLastReadMessageIndex(
+                    lastReadMessageIndex,
+                    object : CallbackListener<Long> {
+                        override fun onSuccess(count: Long) {
+                            debug("setLastReadMessageIndex => onSuccess")
+                            val unreadMessages = Api.MessageCount()
+                            unreadMessages.count = count
+                            result.success(unreadMessages)
+                        }
 
-                    override fun onError(errorInfo: ErrorInfo) {
-                        debug("setLastReadMessageIndex => onError: $errorInfo")
-                        result.error(TwilioException(errorInfo.code, errorInfo.message))
-                    }
-                })
+                        override fun onError(errorInfo: ErrorInfo) {
+                            debug("setLastReadMessageIndex => onError: $errorInfo")
+                            result.error(TwilioException(errorInfo.code, errorInfo.message))
+                        }
+                    })
             }
 
             override fun onError(errorInfo: ErrorInfo) {
@@ -710,18 +692,21 @@ class ConversationMethods : Api.ConversationApi {
 
         client.getConversation(conversationSid, object : CallbackListener<Conversation> {
             override fun onSuccess(conversation: Conversation) {
-                conversation.getMessagesAfter(index, count.toInt(), object : CallbackListener<List<Message>> {
-                    override fun onSuccess(messages: List<Message>) {
-                        debug("getMessagesAfter => onSuccess")
-                        val messagesMap = messages.map { Mapper.messageToPigeon(it) }
-                        result.success(messagesMap.toMutableList())
-                    }
+                conversation.getMessagesAfter(
+                    index,
+                    count.toInt(),
+                    object : CallbackListener<List<Message>> {
+                        override fun onSuccess(messages: List<Message>) {
+                            debug("getMessagesAfter => onSuccess")
+                            val messagesMap = messages.map { Mapper.messageToPigeon(it) }
+                            result.success(messagesMap.toMutableList())
+                        }
 
-                    override fun onError(errorInfo: ErrorInfo) {
-                        debug("getMessagesAfter => onError: $errorInfo")
-                        result.error(TwilioException(errorInfo.code, errorInfo.message))
-                    }
-                })
+                        override fun onError(errorInfo: ErrorInfo) {
+                            debug("getMessagesAfter => onError: $errorInfo")
+                            result.error(TwilioException(errorInfo.code, errorInfo.message))
+                        }
+                    })
             }
 
             override fun onError(errorInfo: ErrorInfo) {
@@ -744,18 +729,21 @@ class ConversationMethods : Api.ConversationApi {
 
         client.getConversation(conversationSid, object : CallbackListener<Conversation> {
             override fun onSuccess(conversation: Conversation) {
-                conversation.getMessagesBefore(index, count.toInt(), object : CallbackListener<List<Message>> {
-                    override fun onSuccess(messages: List<Message>) {
-                        debug("getMessagesBefore => onSuccess")
-                        val messagesMap = messages.map { Mapper.messageToPigeon(it) }
-                        result.success(messagesMap.toMutableList())
-                    }
+                conversation.getMessagesBefore(
+                    index,
+                    count.toInt(),
+                    object : CallbackListener<List<Message>> {
+                        override fun onSuccess(messages: List<Message>) {
+                            debug("getMessagesBefore => onSuccess")
+                            val messagesMap = messages.map { Mapper.messageToPigeon(it) }
+                            result.success(messagesMap.toMutableList())
+                        }
 
-                    override fun onError(errorInfo: ErrorInfo) {
-                        debug("getMessagesBefore => onError: $errorInfo")
-                        result.error(TwilioException(errorInfo.code, errorInfo.message))
-                    }
-                })
+                        override fun onError(errorInfo: ErrorInfo) {
+                            debug("getMessagesBefore => onError: $errorInfo")
+                            result.error(TwilioException(errorInfo.code, errorInfo.message))
+                        }
+                    })
             }
 
             override fun onError(errorInfo: ErrorInfo) {
@@ -819,20 +807,22 @@ class ConversationMethods : Api.ConversationApi {
         try {
             client.getConversation(conversationSid, object : CallbackListener<Conversation> {
                 override fun onSuccess(conversation: Conversation?) {
-                    conversation?.getLastMessages(count.toInt(), object : CallbackListener<List<Message>> {
-                        override fun
-                                onSuccess(messages: List<Message>) {
-                            debug("getLastMessages => onSuccess")
+                    conversation?.getLastMessages(
+                        count.toInt(),
+                        object : CallbackListener<List<Message>> {
+                            override fun
+                                    onSuccess(messages: List<Message>) {
+                                debug("getLastMessages => onSuccess")
 
-                            val messagesMap = messages.map { Mapper.messageToPigeon(it) }
-                            result.success(messagesMap.toMutableList())
-                        }
+                                val messagesMap = messages.map { Mapper.messageToPigeon(it) }
+                                result.success(messagesMap.toMutableList())
+                            }
 
-                        override fun onError(errorInfo: ErrorInfo) {
-                            debug("getLastMessages => onError: $errorInfo")
-                            result.error(TwilioException(errorInfo.code, errorInfo.message))
-                        }
-                    })
+                            override fun onError(errorInfo: ErrorInfo) {
+                                debug("getLastMessages => onError: $errorInfo")
+                                result.error(TwilioException(errorInfo.code, errorInfo.message))
+                            }
+                        })
                 }
 
                 override fun onError(errorInfo: ErrorInfo) {
