@@ -137,7 +137,7 @@ class Conversation {
             map['synchronizationStatus'] ?? '') ??
         ConversationSynchronizationStatus.NONE;
 
-    dateCreated = map['dateCreated'] == null
+    dateCreated = map['dateCreated'] == null || map['dateCreated'].toString().isEmpty
         ? null
         : DateTime.parse(map['dateCreated'] as String);
     createdBy = map['createdBy'] as String?;
