@@ -141,10 +141,10 @@ class Conversation {
         ? null
         : DateTime.parse(map['dateCreated'] as String);
     createdBy = map['createdBy'] as String?;
-    dateUpdated = map['dateUpdated'] == null
+    dateUpdated = map['dateUpdated'] == null || map['dateUpdated'].toString().isEmpty
         ? null
         : DateTime.parse(map['dateUpdated'] as String);
-    _lastMessageDate = map['lastMessageDate'] == null
+    _lastMessageDate = map['lastMessageDate'] == null || map['lastMessageDate'].toString().isEmpty
         ? null
         : DateTime.parse(map['lastMessageDate'] as String);
     _lastReadMessageIndex = map['lastReadMessageIndex'] as int?;
